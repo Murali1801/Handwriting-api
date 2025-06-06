@@ -4,9 +4,11 @@ FROM python:3.6-slim
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies
+# Install system dependencies including Tkinter
 RUN apt-get update && apt-get install -y \
     build-essential \
+    python3-tk \
+    tk-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements file
@@ -14,6 +16,9 @@ COPY requirements.txt .
 
 # Install Python dependencies with specific versions
 RUN pip install --no-cache-dir -r requirements.txt
+
+# Set matplotlib to use Agg backend
+ENV MPLBACKEND=Agg
 
 # Copy the rest of the application
 COPY . .

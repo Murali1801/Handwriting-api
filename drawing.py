@@ -1,4 +1,6 @@
 from __future__ import print_function
+import matplotlib
+matplotlib.use('Agg')  # Set the backend to Agg before importing pyplot
 from collections import defaultdict
 
 import matplotlib.pyplot as plt
