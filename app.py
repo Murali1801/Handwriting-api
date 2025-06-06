@@ -30,36 +30,7 @@ def generate():
 
         logger.info(f"Generating handwriting for text: {text[:50]}...")
         
-        # Split text into lines of 75 characters each with word wrapping
-        lines = []
-        current_line = ""
-        words = text.split()
-        
-        for word in words:
-            # If adding this word would exceed the line limit
-            if len(current_line) + len(word) + 1 > 75:  # +1 for space
-                if current_line:  # If there's content in current line
-                    lines.append(current_line)
-                    current_line = word
-                else:  # If current line is empty, word is too long
-                    # Split long word into chunks of 75
-                    for i in range(0, len(word), 75):
-                        chunk = word[i:i+75]
-                        lines.append(chunk)
-                    current_line = ""
-            else:
-                if current_line:  # Add space if not first word
-                    current_line += " "
-                current_line += word
-        
-        # Add the last line if it's not empty
-        if current_line:
-            lines.append(current_line)
-        
-        # If no lines were created (empty text), return error
-        if not lines:
-            return jsonify({'error': 'No valid text to generate'}), 400
-
+        lines = text.split('\n')
         biases = [bias for _ in lines]
         styles = [style for _ in lines]
         stroke_colors = ['black' for _ in lines]
@@ -70,7 +41,7 @@ def generate():
         with tempfile.NamedTemporaryFile(delete=False, suffix='.svg') as tmp:
             filename = tmp.name
         
-        logger.info(f"Starting handwriting generation for {len(lines)} lines...")
+        logger.info("Starting handwriting generation...")
         hand.write(
             filename=filename,
             lines=lines,
@@ -81,17 +52,16 @@ def generate():
         )
         logger.info("Handwriting generation completed")
 
-        # Read the SVG file content
-        with open(filename, 'r') as f:
-            svg_content = f.read()
-
-        # Clean up the temp file
-        try:
-            os.remove(filename)
-        except Exception as e:
-            logger.error(f"Error cleaning up temp file: {str(e)}")
-
-        return jsonify({'svg': svg_content})
+        # Return the SVG file
+        response = send_file(filename, mimetype='image/svg+xml')
+        # Clean up the temp file after sending
+        @response.call_on_close
+        def cleanup():
+            try:
+                os.remove(filename)
+            except Exception as e:
+                logger.error(f"Error cleaning up temp file: {str(e)}")
+        return response
 
     except Exception as e:
         logger.error(f"Error generating handwriting: {str(e)}")
