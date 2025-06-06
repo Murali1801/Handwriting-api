@@ -16,8 +16,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the rest of the application
 COPY . .
 
+# Set environment variables
+ENV PORT=5000
+ENV PYTHONUNBUFFERED=1
+
 # Expose the port
 EXPOSE 5000
 
 # Run the application with Gunicorn
-CMD ["gunicorn", "--config", "gunicorn_config.py", "app:app"] 
+CMD gunicorn --config gunicorn_config.py app:app 

@@ -1,11 +1,12 @@
 import multiprocessing
+import os
 
 # Server socket
-bind = "0.0.0.0:5000"
+bind = "0.0.0.0:" + os.getenv("PORT", "5000")
 backlog = 2048
 
 # Worker processes
-workers = multiprocessing.cpu_count() * 2 + 1
+workers = 1  # Use single worker for stability
 worker_class = 'sync'
 worker_connections = 1000
 timeout = 300  # 5 minutes timeout
@@ -29,4 +30,9 @@ tmp_upload_dir = None
 
 # SSL
 keyfile = None
-certfile = None 
+certfile = None
+
+# Additional settings for stability
+max_requests = 1000
+max_requests_jitter = 50
+graceful_timeout = 300 
