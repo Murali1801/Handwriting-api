@@ -29,7 +29,7 @@ def generate():
             return jsonify({'error': 'Text is required'}), 400
 
         logger.info(f"Generating handwriting for text: {text[:50]}...")
-        
+
         lines = text.split('\n')
         biases = [bias for _ in lines]
         styles = [style for _ in lines]
@@ -40,17 +40,17 @@ def generate():
         # Use a temporary file for the SVG
         with tempfile.NamedTemporaryFile(delete=False, suffix='.svg') as tmp:
             filename = tmp.name
-        
-        logger.info("Starting handwriting generation...")
-        hand.write(
-            filename=filename,
-            lines=lines,
-            biases=biases,
-            styles=styles,
-            stroke_colors=stroke_colors,
-            stroke_widths=stroke_widths
-        )
-        logger.info("Handwriting generation completed")
+            
+            logger.info("Starting handwriting generation...")
+            hand.write(
+                filename=filename,
+                lines=lines,
+                biases=biases,
+                styles=styles,
+                stroke_colors=stroke_colors,
+                stroke_widths=stroke_widths
+            )
+            logger.info("Handwriting generation completed")
 
         # Return the SVG file
         response = send_file(filename, mimetype='image/svg+xml')

@@ -40,15 +40,25 @@ class Hand(object):
 
     def write(self, filename, lines, biases=None, styles=None, stroke_colors=None, stroke_widths=None):
         valid_char_set = set(drawing.alphabet)
-        for line_num, line in enumerate(lines):
-            if len(line) > 75:
-                raise ValueError(
-                    (
-                        "Each line must be at most 75 characters. "
-                        "Line {} contains {}"
-                    ).format(line_num, len(line))
-                )
+        
+        # Split long lines into chunks of 75 characters each
+        processed_lines = []
+        for line in lines:
+            # Split by words to avoid breaking words
+            words = line.split()
+            current_line = ""
+            for word in words:
+                if len(current_line) + len(word) + 1 <= 75:  # +1 for space
+                    current_line += (word + " ")
+                else:
+                    if current_line:
+                        processed_lines.append(current_line.strip())
+                    current_line = word + " "
+            if current_line:
+                processed_lines.append(current_line.strip())
 
+        # Validate characters
+        for line_num, line in enumerate(processed_lines):
             for char in line:
                 if char not in valid_char_set:
                     raise ValueError(
@@ -58,8 +68,18 @@ class Hand(object):
                         ).format(char, line_num, valid_char_set)
                     )
 
-        strokes = self._sample(lines, biases=biases, styles=styles)
-        self._draw(strokes, lines, filename, stroke_colors=stroke_colors, stroke_widths=stroke_widths)
+        # Adjust biases and styles for the new number of lines
+        if biases is not None:
+            biases = [biases[0]] * len(processed_lines)
+        if styles is not None:
+            styles = [styles[0]] * len(processed_lines)
+        if stroke_colors is not None:
+            stroke_colors = [stroke_colors[0]] * len(processed_lines)
+        if stroke_widths is not None:
+            stroke_widths = [stroke_widths[0]] * len(processed_lines)
+
+        strokes = self._sample(processed_lines, biases=biases, styles=styles)
+        self._draw(strokes, processed_lines, filename, stroke_colors=stroke_colors, stroke_widths=stroke_widths)
 
     def _sample(self, lines, biases=None, styles=None):
         num_samples = len(lines)
