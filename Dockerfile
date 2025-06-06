@@ -4,33 +4,20 @@ FROM python:3.6-slim
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies including Tkinter
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
     build-essential \
-    python3-tk \
-    tk-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements file
+# Copy requirements first to leverage Docker cache
 COPY requirements.txt .
-
-# Install numpy first
-RUN pip install --no-cache-dir numpy==1.14.5
-
-# Install remaining Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
-
-# Set matplotlib to use Agg backend
-ENV MPLBACKEND=Agg
-
-# Copy the styles directory first
-COPY styles/ styles/
 
 # Copy the rest of the application
 COPY . .
 
-# Expose the port the app runs on
+# Expose the port
 EXPOSE 5000
 
-# Command to run the application with increased timeout
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--timeout", "300", "--workers", "1", "--threads", "1", "app:app"] 
+# Run the application with Gunicorn
+CMD ["gunicorn", "--config", "gunicorn_config.py", "app:app"] 
