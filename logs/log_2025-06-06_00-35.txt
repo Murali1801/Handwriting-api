@@ -1,0 +1,1 @@
+[[06/06/2025 12:36:17 AM]]  * Detected change in 'C:\\Users\\mural\\Videos\\handwriting-synthesis-master (1)\\handwriting-synthesis-master\\app.py', reloading

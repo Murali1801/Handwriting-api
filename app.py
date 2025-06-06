@@ -3,9 +3,15 @@ from flask_cors import CORS
 from demo import Hand
 import tempfile
 import os
+import logging
+import traceback
 
 app = Flask(__name__, static_folder='static')
 CORS(app)  # Enable CORS for all routes
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 @app.route('/')
 def index():
@@ -13,39 +19,57 @@ def index():
 
 @app.route('/generate', methods=['POST'])
 def generate():
-    data = request.get_json()
-    text = data.get('text', '')
-    style = int(data.get('style', 9))
-    bias = float(data.get('bias', 0.75))
+    try:
+        data = request.get_json()
+        text = data.get('text', '')
+        style = int(data.get('style', 9))
+        bias = float(data.get('bias', 0.75))
 
-    if not text:
-        return jsonify({'error': 'Text is required'}), 400
+        if not text:
+            return jsonify({'error': 'Text is required'}), 400
 
-    lines = text.split('\n')
-    biases = [bias for _ in lines]
-    styles = [style for _ in lines]
-    stroke_colors = ['black' for _ in lines]
-    stroke_widths = [1 for _ in lines]
+        logger.info(f"Generating handwriting for text: {text[:50]}...")
+        
+        lines = text.split('\n')
+        biases = [bias for _ in lines]
+        styles = [style for _ in lines]
+        stroke_colors = ['black' for _ in lines]
+        stroke_widths = [1 for _ in lines]
 
-    hand = Hand()
-    # Use a temporary file for the SVG
-    with tempfile.NamedTemporaryFile(delete=False, suffix='.svg') as tmp:
-        filename = tmp.name
-    hand.write(
-        filename=filename,
-        lines=lines,
-        biases=biases,
-        styles=styles,
-        stroke_colors=stroke_colors,
-        stroke_widths=stroke_widths
-    )
-    # Return the SVG file
-    response = send_file(filename, mimetype='image/svg+xml')
-    # Clean up the temp file after sending
-    @response.call_on_close
-    def cleanup():
-        os.remove(filename)
-    return response
+        hand = Hand()
+        # Use a temporary file for the SVG
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.svg') as tmp:
+            filename = tmp.name
+        
+        logger.info("Starting handwriting generation...")
+        hand.write(
+            filename=filename,
+            lines=lines,
+            biases=biases,
+            styles=styles,
+            stroke_colors=stroke_colors,
+            stroke_widths=stroke_widths
+        )
+        logger.info("Handwriting generation completed")
+
+        # Return the SVG file
+        response = send_file(filename, mimetype='image/svg+xml')
+        # Clean up the temp file after sending
+        @response.call_on_close
+        def cleanup():
+            try:
+                os.remove(filename)
+            except Exception as e:
+                logger.error(f"Error cleaning up temp file: {str(e)}")
+        return response
+
+    except Exception as e:
+        logger.error(f"Error generating handwriting: {str(e)}")
+        logger.error(traceback.format_exc())
+        return jsonify({
+            'error': 'Error generating handwriting',
+            'details': str(e)
+        }), 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True) 

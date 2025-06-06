@@ -1,0 +1,2 @@
+[[06/06/2025 12:27:44 AM]] 127.0.0.1 - - [06/Jun/2025 00:27:44] "POST /generate HTTP/1.1" 200 -
+[[06/06/2025 12:28:37 AM]]  * Detected change in 'C:\\Users\\mural\\Videos\\handwriting-synthesis-master (1)\\handwriting-synthesis-master\\app.py', reloading
