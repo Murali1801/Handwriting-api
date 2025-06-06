@@ -33,4 +33,4 @@ COPY . .
 EXPOSE 5000
 
 # Command to run the application with increased timeout
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--timeout", "300", "--workers", "1", "--threads", "1", "app:app"] 
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--timeout", "600", "--workers", "1", "--threads", "1", "app:app"] 
