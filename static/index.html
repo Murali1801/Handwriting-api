@@ -74,6 +74,27 @@
                 </div>
             </div>
             
+            <div class="row">
+                <div class="col-md-4">
+                    <label for="lineSpacing">Line Spacing (cm):</label>
+                    <input type="range" id="lineSpacing" name="lineSpacing" min="0.5" max="2.0" step="0.1" value="0.75">
+                    <span id="lineSpacingValue">0.75</span> cm
+                </div>
+                <div class="col-md-4">
+                    <label for="fontSize">Font Size (px):</label>
+                    <input type="range" id="fontSize" name="fontSize" min="0.5" max="2.0" step="0.1" value="1.0">
+                    <span id="fontSizeValue">1.0</span> px
+                </div>
+                <div class="col-md-4">
+                    <label for="textAlign" class="form-label">Text Alignment:</label>
+                    <select class="form-select" id="textAlign">
+                        <option value="left">Left</option>
+                        <option value="center" selected>Center</option>
+                        <option value="right">Right</option>
+                    </select>
+                </div>
+            </div>
+            
             <div class="text-center mt-3">
                 <button class="btn btn-primary" onclick="generateHandwriting()">Generate Handwriting</button>
             </div>
@@ -107,10 +128,21 @@
             document.getElementById('biasValue').textContent = this.value;
         });
 
+        document.getElementById('lineSpacing').addEventListener('input', function() {
+            document.getElementById('lineSpacingValue').textContent = this.value;
+        });
+
+        document.getElementById('fontSize').addEventListener('input', function() {
+            document.getElementById('fontSizeValue').textContent = this.value;
+        });
+
         function generateHandwriting() {
             const text = document.getElementById('text').value;
             const style = document.getElementById('style').value;
             const bias = document.getElementById('bias').value;
+            const lineSpacing = document.getElementById('lineSpacing').value;
+            const fontSize = document.getElementById('fontSize').value;
+            const textAlign = document.getElementById('textAlign').value;
             
             if (!text) {
                 alert('Please enter some text');
@@ -130,7 +162,10 @@
                 body: JSON.stringify({
                     text: text,
                     style: style,
-                    bias: bias
+                    bias: bias,
+                    line_spacing: lineSpacing,
+                    font_size: fontSize,
+                    text_align: textAlign
                 })
             })
             .then(response => {

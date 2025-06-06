@@ -38,7 +38,7 @@ class Hand(object):
         )
         self.nn.restore()
 
-    def write(self, filename, lines, biases=None, styles=None, stroke_colors=None, stroke_widths=None):
+    def write(self, filename, lines, biases=None, styles=None, stroke_colors=None, stroke_widths=None, line_spacing=60, font_size=1.5, text_align='center'):
         valid_char_set = set(drawing.alphabet)
         
         # Split long lines into chunks of 75 characters each
@@ -79,7 +79,7 @@ class Hand(object):
             stroke_widths = [stroke_widths[0]] * len(processed_lines)
 
         strokes = self._sample(processed_lines, biases=biases, styles=styles)
-        self._draw(strokes, processed_lines, filename, stroke_colors=stroke_colors, stroke_widths=stroke_widths)
+        self._draw(strokes, processed_lines, filename, stroke_colors=stroke_colors, stroke_widths=stroke_widths, line_spacing=line_spacing, font_size=font_size, text_align=text_align)
 
     def _sample(self, lines, biases=None, styles=None):
         num_samples = len(lines)
@@ -127,11 +127,27 @@ class Hand(object):
         samples = [sample[~np.all(sample == 0.0, axis=1)] for sample in samples]
         return samples
 
-    def _draw(self, strokes, lines, filename, stroke_colors=None, stroke_widths=None):
+    def _draw(self, strokes, lines, filename, stroke_colors=None, stroke_widths=None, line_spacing=0.75, font_size=1.0, text_align='left'):
+        """
+        Draw text using the handwriting model.
+        
+        Args:
+            strokes (list of numpy arrays): List of strokes for each line
+            lines (list of str): List of text lines
+            filename (str): Output filename
+            stroke_colors (list of str, optional): List of stroke colors
+            stroke_widths (list of float, optional): List of stroke widths
+            line_spacing (float): Line spacing in centimeters (default: 0.75)
+            font_size (float): Font size in pixels (default: 1.0)
+            text_align (str): Text alignment ('left', 'center', 'right')
+        """
         stroke_colors = stroke_colors or ['black']*len(lines)
         stroke_widths = stroke_widths or [2]*len(lines)
 
-        line_height = 60
+        # Convert line_spacing from cm to pixels (1 cm = 37.7952756 px)
+        line_spacing_px = line_spacing * 37.7952756
+        
+        line_height = line_spacing_px
         view_width = 1000
         view_height = line_height*(len(strokes) + 1)
 
@@ -141,31 +157,31 @@ class Hand(object):
 
         initial_coord = np.array([0, -(3*line_height / 4)])
         for offsets, line, color, width in zip(strokes, lines, stroke_colors, stroke_widths):
-
             if not line:
                 initial_coord[1] -= line_height
                 continue
-
-            offsets[:, :2] *= 1.5
-            strokes = drawing.offsets_to_coords(offsets)
-            strokes = drawing.denoise(strokes)
-            strokes[:, :2] = drawing.align(strokes[:, :2])
-
-            strokes[:, 1] *= -1
-            strokes[:, :2] -= strokes[:, :2].min() + initial_coord
-            strokes[:, 0] += (view_width - strokes[:, 0].max()) / 2
-
+            offsets[:, :2] *= font_size
+            strokes_coords = drawing.offsets_to_coords(offsets)
+            strokes_coords = drawing.denoise(strokes_coords)
+            strokes_coords[:, :2] = drawing.align(strokes_coords[:, :2])
+            strokes_coords[:, 1] *= -1
+            strokes_coords[:, :2] -= strokes_coords[:, :2].min() + initial_coord
+            # Text alignment
+            if text_align == 'center':
+                strokes_coords[:, 0] += (view_width - strokes_coords[:, 0].max()) / 2
+            elif text_align == 'right':
+                strokes_coords[:, 0] += (view_width - strokes_coords[:, 0].max()) - 10
+            else:  # left
+                strokes_coords[:, 0] += 10
             prev_eos = 1.0
             p = "M{},{} ".format(0, 0)
-            for x, y, eos in zip(*strokes.T):
+            for x, y, eos in zip(*strokes_coords.T):
                 p += '{}{},{} '.format('M' if prev_eos == 1.0 else 'L', x, y)
                 prev_eos = eos
             path = svgwrite.path.Path(p)
             path = path.stroke(color=color, width=width, linecap='round').fill("none")
             dwg.add(path)
-
             initial_coord[1] -= line_height
-
         dwg.save()
 
 
