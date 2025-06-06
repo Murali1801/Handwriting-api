@@ -28,9 +28,34 @@ def generate():
         if not text:
             return jsonify({'error': 'Text is required'}), 400
 
+        # Check total character limit
+        if len(text) > 500:
+            return jsonify({
+                'error': 'Text exceeds maximum length of 500 characters',
+                'details': f'Current length: {len(text)} characters'
+            }), 400
+
         logger.info(f"Generating handwriting for text: {text[:50]}...")
         
-        lines = text.split('\n')
+        # Split text into lines of 75 characters each
+        lines = []
+        current_line = ""
+        for char in text:
+            if len(current_line) >= 75:
+                lines.append(current_line)
+                current_line = char
+            else:
+                current_line += char
+        if current_line:  # Add the last line if it's not empty
+            lines.append(current_line)
+        
+        # Ensure we don't exceed the model's line limit
+        if len(lines) > 7:  # 500/75 ≈ 6.67, so 7 lines max
+            return jsonify({
+                'error': 'Text generates too many lines',
+                'details': f'Maximum 7 lines allowed, got {len(lines)} lines'
+            }), 400
+
         biases = [bias for _ in lines]
         styles = [style for _ in lines]
         stroke_colors = ['black' for _ in lines]
@@ -52,16 +77,17 @@ def generate():
         )
         logger.info("Handwriting generation completed")
 
-        # Return the SVG file
-        response = send_file(filename, mimetype='image/svg+xml')
-        # Clean up the temp file after sending
-        @response.call_on_close
-        def cleanup():
-            try:
-                os.remove(filename)
-            except Exception as e:
-                logger.error(f"Error cleaning up temp file: {str(e)}")
-        return response
+        # Read the SVG file content
+        with open(filename, 'r') as f:
+            svg_content = f.read()
+
+        # Clean up the temp file
+        try:
+            os.remove(filename)
+        except Exception as e:
+            logger.error(f"Error cleaning up temp file: {str(e)}")
+
+        return jsonify({'svg': svg_content})
 
     except Exception as e:
         logger.error(f"Error generating handwriting: {str(e)}")

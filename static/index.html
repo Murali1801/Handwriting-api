@@ -39,6 +39,16 @@
             text-align: center;
             margin: 20px 0;
         }
+        .download-btn {
+            display: none;
+            margin-top: 15px;
+        }
+        .preview-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
     </style>
 </head>
 <body>
@@ -77,7 +87,12 @@
         </div>
 
         <div class="preview-container">
-            <h4 class="text-center mb-3">Preview</h4>
+            <div class="preview-header">
+                <h4 class="mb-0">Preview</h4>
+                <button id="downloadBtn" class="btn btn-success download-btn" onclick="downloadSVG()">
+                    <i class="bi bi-download"></i> Download SVG
+                </button>
+            </div>
             <div id="preview"></div>
         </div>
     </div>
@@ -105,6 +120,7 @@
             // Show loading spinner
             document.getElementById('loading').style.display = 'block';
             document.getElementById('preview').innerHTML = '';
+            document.getElementById('downloadBtn').style.display = 'none';
 
             fetch('/generate', {
                 method: 'POST',
@@ -126,12 +142,35 @@
             .then(svg => {
                 document.getElementById('preview').innerHTML = svg;
                 document.getElementById('loading').style.display = 'none';
+                document.getElementById('downloadBtn').style.display = 'inline-block';
             })
             .catch(error => {
                 console.error('Error:', error);
                 alert('Error generating handwriting');
                 document.getElementById('loading').style.display = 'none';
             });
+        }
+
+        function downloadSVG() {
+            const svgElement = document.querySelector('#preview svg');
+            if (!svgElement) {
+                alert('No handwriting to download');
+                return;
+            }
+
+            // Create a new SVG element with the same content
+            const svgData = new XMLSerializer().serializeToString(svgElement);
+            const svgBlob = new Blob([svgData], {type: 'image/svg+xml;charset=utf-8'});
+            const svgUrl = URL.createObjectURL(svgBlob);
+
+            // Create download link
+            const downloadLink = document.createElement('a');
+            downloadLink.href = svgUrl;
+            downloadLink.download = 'handwriting.svg';
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            document.body.removeChild(downloadLink);
+            URL.revokeObjectURL(svgUrl);
         }
     </script>
 </body>

@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Handwriting Generator Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        textarea {
+            width: 100%;
+            min-height: 150px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            resize: vertical;
+        }
+        input[type="range"] {
+            width: 100%;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: white;
+        }
+        .loading {
+            display: none;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .loading::after {
+            content: "⏳";
+            animation: loading 1s infinite;
+        }
+        @keyframes loading {
+            0% { content: "⏳"; }
+            50% { content: "⌛"; }
+            100% { content: "⏳"; }
+        }
+        .error {
+            color: red;
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #ffebee;
+            border-radius: 4px;
+            display: none;
+        }
+        .char-counter {
+            text-align: right;
+            color: #666;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+        .download-btn {
+            background-color: #2196F3;
+            margin-top: 10px;
+        }
+        .download-btn:hover {
+            background-color: #1976D2;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Handwriting Generator Test</h1>
+        <div class="form-group">
+            <label for="text">Enter Text (max 1000 characters):</label>
+            <textarea id="text" maxlength="1000" placeholder="Enter your text here..."></textarea>
+            <div class="char-counter">0/1000 characters</div>
+        </div>
+        <div class="form-group">
+            <label for="style">Style (0-100):</label>
+            <input type="range" id="style" min="0" max="100" value="50">
+            <span id="styleValue">50</span>
+        </div>
+        <div class="form-group">
+            <label for="bias">Bias (0-100):</label>
+            <input type="range" id="bias" min="0" max="100" value="50">
+            <span id="biasValue">50</span>
+        </div>
+        <button onclick="generateHandwriting()">Generate Handwriting</button>
+        <div class="loading" id="loading">Generating...</div>
+        <div class="error" id="error"></div>
+        <div id="result"></div>
+    </div>
+
+    <script>
+        // Update character counter
+        const textarea = document.getElementById('text');
+        const charCounter = document.querySelector('.char-counter');
+        
+        textarea.addEventListener('input', function() {
+            const remaining = this.value.length;
+            charCounter.textContent = `${remaining}/1000 characters`;
+        });
+
+        // Update slider values
+        document.getElementById('style').addEventListener('input', function() {
+            document.getElementById('styleValue').textContent = this.value;
+        });
+        document.getElementById('bias').addEventListener('input', function() {
+            document.getElementById('biasValue').textContent = this.value;
+        });
+
+        function generateHandwriting() {
+            const text = document.getElementById('text').value;
+            const style = document.getElementById('style').value;
+            const bias = document.getElementById('bias').value;
+            
+            if (!text) {
+                showError('Please enter some text');
+                return;
+            }
+
+            const loading = document.getElementById('loading');
+            const error = document.getElementById('error');
+            const result = document.getElementById('result');
+            
+            loading.style.display = 'block';
+            error.style.display = 'none';
+            result.innerHTML = '';
+
+            fetch('https://handwriting-generator.onrender.com/generate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    text: text,
+                    style: parseInt(style),
+                    bias: parseInt(bias)
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                loading.style.display = 'none';
+                if (data.error) {
+                    showError(data.error);
+                } else {
+                    result.innerHTML = data.svg;
+                    // Add download button
+                    const downloadBtn = document.createElement('button');
+                    downloadBtn.className = 'download-btn';
+                    downloadBtn.textContent = 'Download SVG';
+                    downloadBtn.onclick = () => downloadSVG(data.svg);
+                    result.appendChild(downloadBtn);
+                }
+            })
+            .catch(error => {
+                loading.style.display = 'none';
+                showError('Error: ' + error.message);
+            });
+        }
+
+        function showError(message) {
+            const error = document.getElementById('error');
+            error.textContent = message;
+            error.style.display = 'block';
+        }
+
+        function downloadSVG(svgContent) {
+            const blob = new Blob([svgContent], { type: 'image/svg+xml' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'handwriting.svg';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html> 
