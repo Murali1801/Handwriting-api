@@ -28,33 +28,37 @@ def generate():
         if not text:
             return jsonify({'error': 'Text is required'}), 400
 
-        # Check total character limit
-        if len(text) > 500:
-            return jsonify({
-                'error': 'Text exceeds maximum length of 500 characters',
-                'details': f'Current length: {len(text)} characters'
-            }), 400
-
         logger.info(f"Generating handwriting for text: {text[:50]}...")
         
-        # Split text into lines of 75 characters each
+        # Split text into lines of 75 characters each with word wrapping
         lines = []
         current_line = ""
-        for char in text:
-            if len(current_line) >= 75:
-                lines.append(current_line)
-                current_line = char
+        words = text.split()
+        
+        for word in words:
+            # If adding this word would exceed the line limit
+            if len(current_line) + len(word) + 1 > 75:  # +1 for space
+                if current_line:  # If there's content in current line
+                    lines.append(current_line)
+                    current_line = word
+                else:  # If current line is empty, word is too long
+                    # Split long word into chunks of 75
+                    for i in range(0, len(word), 75):
+                        chunk = word[i:i+75]
+                        lines.append(chunk)
+                    current_line = ""
             else:
-                current_line += char
-        if current_line:  # Add the last line if it's not empty
+                if current_line:  # Add space if not first word
+                    current_line += " "
+                current_line += word
+        
+        # Add the last line if it's not empty
+        if current_line:
             lines.append(current_line)
         
-        # Ensure we don't exceed the model's line limit
-        if len(lines) > 7:  # 500/75 ≈ 6.67, so 7 lines max
-            return jsonify({
-                'error': 'Text generates too many lines',
-                'details': f'Maximum 7 lines allowed, got {len(lines)} lines'
-            }), 400
+        # If no lines were created (empty text), return error
+        if not lines:
+            return jsonify({'error': 'No valid text to generate'}), 400
 
         biases = [bias for _ in lines]
         styles = [style for _ in lines]
@@ -66,7 +70,7 @@ def generate():
         with tempfile.NamedTemporaryFile(delete=False, suffix='.svg') as tmp:
             filename = tmp.name
         
-        logger.info("Starting handwriting generation...")
+        logger.info(f"Starting handwriting generation for {len(lines)} lines...")
         hand.write(
             filename=filename,
             lines=lines,
