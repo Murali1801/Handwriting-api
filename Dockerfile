@@ -14,7 +14,10 @@ RUN apt-get update && apt-get install -y \
 # Copy requirements file
 COPY requirements.txt .
 
-# Install Python dependencies with specific versions
+# Install numpy first
+RUN pip install --no-cache-dir numpy==1.14.5
+
+# Install remaining Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Set matplotlib to use Agg backend
