@@ -165,6 +165,7 @@ class Hand(object):
             strokes_coords = drawing.denoise(strokes_coords)
             strokes_coords[:, :2] = drawing.align(strokes_coords[:, :2])
             strokes_coords[:, 1] *= -1
+            
             strokes_coords[:, :2] -= strokes_coords[:, :2].min() + initial_coord
             # Text alignment
             if text_align == 'center':
